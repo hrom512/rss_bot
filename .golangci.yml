@@ -1,0 +1,35 @@
+run:
+  timeout: 3m
+  tests: true
+
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - gosimple
+    - unused
+    - ineffassign
+    - typecheck
+    - goconst
+    - goimports
+    - gosec
+    - revive
+
+linters-settings:
+  govet:
+    enable-all: false
+  dupl:
+    threshold: 100
+  goconst:
+    min-len:         2
+    min-occurrences: 2
+
+issues:
+  exclude-use-default: false
+  exclude-rules:
+    - text: 'shadow: declaration of "err" shadows declaration at'
+      linters: [ govet ]
+    - text: 'package-comments: should have a package comment'
+      linters: [ revive ]

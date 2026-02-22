@@ -32,9 +32,9 @@ go.work.sum
 # .vscode/
 
 # Database
-data
+/data
 
 # binaries
-bin
-bot
-migrate
+/bin
+/bot
+/migrate

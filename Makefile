@@ -18,9 +18,6 @@ fmt:
 test:
 	$(GO) test ./...
 
-lint-basic:
-	$(GO) vet ./...
-
 lint:
 	@command -v $(GOLANGCI_LINT) >/dev/null 2>&1 || ( \
 		echo "$(GOLANGCI_LINT) is not installed. Run: make tools" >&2; \

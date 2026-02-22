@@ -244,3 +244,147 @@ func TestSchedulerWithExcludeFilter(t *testing.T) {
 		}
 	}
 }
+
+func TestSchedulerCancelledContext(t *testing.T) {
+	store := newTestStore(t)
+	xml := loadFixture(t)
+
+	setupCtx := context.Background()
+	feed := model.Feed{
+		ChatID: 100, Name: "Test", URL: "https://example.com/rss",
+		IntervalMinutes: 15, IsActive: true,
+	}
+	if err := store.CreateFeed(setupCtx, &feed); err != nil {
+		t.Fatalf("create feed: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	sender := &mockSender{}
+	f := fetcher.New(&mockHTTP{body: xml})
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	sched := NewWithFetcher(store, f, sender, log)
+	sched.checkAll(ctx)
+
+	msgs := sender.getMessages()
+	if diff := cmp.Diff(0, len(msgs)); diff != "" {
+		t.Errorf("expected no messages when context cancelled (-want +got):\n%s", diff)
+	}
+}
+
+func TestSchedulerRunStopsOnCancel(t *testing.T) {
+	store := newTestStore(t)
+	sender := &mockSender{}
+	f := fetcher.New(&mockHTTP{body: "<rss><channel></channel></rss>"})
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	sched := NewWithFetcher(store, f, sender, log)
+	sched.SetTickInterval(10 * time.Millisecond)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		sched.Run(ctx)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Run did not stop after context cancellation")
+	}
+}
+
+func TestSchedulerFetchError(t *testing.T) {
+	ctx := context.Background()
+	store := newTestStore(t)
+
+	feed := model.Feed{
+		ChatID: 100, Name: "Bad Feed", URL: "https://bad.example.com/rss",
+		IntervalMinutes: 15, IsActive: true,
+	}
+	if err := store.CreateFeed(ctx, &feed); err != nil {
+		t.Fatalf("create feed: %v", err)
+	}
+
+	sender := &mockSender{}
+	httpClient := &mockHTTP{body: "not xml"}
+	f := fetcher.New(httpClient)
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	sched := NewWithFetcher(store, f, sender, log)
+	sched.checkAll(ctx)
+
+	msgs := sender.getMessages()
+	if diff := cmp.Diff(0, len(msgs)); diff != "" {
+		t.Errorf("expected no messages on fetch error (-want +got):\n%s", diff)
+	}
+
+	// last_check_at should still be updated even on error
+	updated, err := store.GetFeed(ctx, feed.ID)
+	if err != nil {
+		t.Fatalf("get feed: %v", err)
+	}
+	if updated.LastCheckAt == nil {
+		t.Error("expected LastCheckAt to be set even after fetch error")
+	}
+}
+
+func TestSchedulerNoFiltersPassesAll(t *testing.T) {
+	ctx := context.Background()
+	store := newTestStore(t)
+	xml := loadFixture(t)
+
+	feed := model.Feed{
+		ChatID: 100, Name: "Unfiltered", URL: "https://example.com/rss",
+		IntervalMinutes: 15, IsActive: true,
+	}
+	if err := store.CreateFeed(ctx, &feed); err != nil {
+		t.Fatalf("create feed: %v", err)
+	}
+	// No filters added
+
+	sender := &mockSender{}
+	httpClient := &mockHTTP{body: xml}
+	f := fetcher.New(httpClient)
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	sched := NewWithFetcher(store, f, sender, log)
+	sched.checkAll(ctx)
+
+	msgs := sender.getMessages()
+	wantCount := 5
+	if diff := cmp.Diff(wantCount, len(msgs)); diff != "" {
+		t.Errorf("expected all 5 items with no filters (-want +got):\n%s", diff)
+	}
+}
+
+func TestSchedulerInactiveFeedSkipped(t *testing.T) {
+	ctx := context.Background()
+	store := newTestStore(t)
+
+	feed := model.Feed{
+		ChatID: 100, Name: "Inactive", URL: "https://example.com/rss",
+		IntervalMinutes: 15, IsActive: false,
+	}
+	if err := store.CreateFeed(ctx, &feed); err != nil {
+		t.Fatalf("create feed: %v", err)
+	}
+
+	sender := &mockSender{}
+	httpClient := &mockHTTP{body: "should not be fetched"}
+	f := fetcher.New(httpClient)
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	sched := NewWithFetcher(store, f, sender, log)
+	sched.checkAll(ctx)
+
+	msgs := sender.getMessages()
+	if diff := cmp.Diff(0, len(msgs)); diff != "" {
+		t.Errorf("inactive feed should not produce messages (-want +got):\n%s", diff)
+	}
+}

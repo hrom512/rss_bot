@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>DevOps Weekly</title>
+    <link>https://devops.example.com</link>
+    <description>Weekly DevOps news</description>
+    <item>
+      <title>Kubernetes 1.32 Released</title>
+      <link>https://devops.example.com/k8s-132</link>
+      <description>New Kubernetes version with sidecar container support and improved scheduling.</description>
+      <guid>item-1</guid>
+    </item>
+    <item>
+      <title>Docker Desktop Update</title>
+      <link>https://devops.example.com/docker-update</link>
+      <description>Docker Desktop gets new resource management features.</description>
+      <guid>item-2</guid>
+    </item>
+    <item>
+      <title>DevOps Job Vacancy at BigCorp</title>
+      <link>https://devops.example.com/vacancy</link>
+      <description>We are hiring senior DevOps engineers. Apply now!</description>
+      <guid>item-3</guid>
+    </item>
+    <item>
+      <title>Helm Chart Best Practices</title>
+      <link>https://devops.example.com/helm-bp</link>
+      <description>Learn how to write production-ready Helm charts for Kubernetes deployments.</description>
+      <guid>item-4</guid>
+    </item>
+    <item>
+      <title>Online Course: K8s Training for Beginners</title>
+      <link>https://devops.example.com/course</link>
+      <description>Comprehensive training course covering Kubernetes basics.</description>
+      <guid>item-5</guid>
+    </item>
+  </channel>
+</rss>

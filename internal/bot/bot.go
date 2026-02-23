@@ -66,6 +66,12 @@ func (b *Bot) Run(ctx context.Context) {
 				continue
 			}
 			if !b.cfg.IsUserAllowed(update.Message.From.ID) {
+				b.log.Warn("access denied",
+					"user_id", update.Message.From.ID,
+					"username", update.Message.From.UserName,
+					"chat_id", update.Message.Chat.ID,
+					"cmd", update.Message.Command(),
+				)
 				b.reply(update.Message.Chat.ID, "Access denied.")
 				continue
 			}
@@ -92,7 +98,13 @@ func (b *Bot) handleCommand(ctx context.Context, msg *tgbotapi.Message) {
 	args := strings.TrimSpace(msg.CommandArguments())
 	chatID := msg.Chat.ID
 
-	b.log.Debug("command", "cmd", cmd, "args", args, "chat_id", chatID)
+	b.log.Info("command",
+		"cmd", cmd,
+		"args", args,
+		"chat_id", chatID,
+		"user_id", msg.From.ID,
+		"username", msg.From.UserName,
+	)
 
 	switch cmd {
 	case "start":

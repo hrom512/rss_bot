@@ -36,6 +36,14 @@ func (b *Bot) handleCallback(ctx context.Context, cb *tgbotapi.CallbackQuery) {
 		return
 	}
 
+	b.log.Info("callback",
+		"action", action,
+		"id", id,
+		"chat_id", chatID,
+		"user_id", cb.From.ID,
+		"username", cb.From.UserName,
+	)
+
 	switch action {
 	case cmdFilters:
 		b.handleFilters(ctx, chatID, idStr)

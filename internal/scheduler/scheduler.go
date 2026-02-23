@@ -86,7 +86,7 @@ func (s *Scheduler) checkAll(ctx context.Context) {
 }
 
 func (s *Scheduler) processFeed(ctx context.Context, feed model.Feed) {
-	s.log.Debug("checking feed", "feed_id", feed.ID, "name", feed.Name)
+	s.log.Info("feed check started", "feed_id", feed.ID, "name", feed.Name, "url", feed.URL)
 
 	rssFeed, err := s.fetcher.Fetch(ctx, feed.URL)
 	if err != nil {
@@ -94,6 +94,8 @@ func (s *Scheduler) processFeed(ctx context.Context, feed model.Feed) {
 		s.updateLastCheck(ctx, &feed)
 		return
 	}
+
+	totalItems := len(rssFeed.Items)
 
 	filters, err := s.store.ListFilters(ctx, feed.ID)
 	if err != nil {
@@ -126,9 +128,13 @@ func (s *Scheduler) processFeed(ctx context.Context, feed model.Feed) {
 		time.Sleep(50 * time.Millisecond)
 	}
 
-	if sent > 0 {
-		s.log.Info("sent notifications", "feed_id", feed.ID, "name", feed.Name, "count", sent)
-	}
+	s.log.Info("feed check done",
+		"feed_id", feed.ID,
+		"name", feed.Name,
+		"total_items", totalItems,
+		"matched", len(matched),
+		"sent", sent,
+	)
 
 	s.updateLastCheck(ctx, &feed)
 }

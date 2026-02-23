@@ -261,6 +261,15 @@ func (b *Bot) handleCheck(ctx context.Context, chatID int64, args string) {
 		}
 	}
 
+	b.log.Info("manual check",
+		"feed_id", feed.ID,
+		"name", feed.Name,
+		"total_items", len(rssFeed.Items),
+		"matched", len(matched),
+		"new", len(newItems),
+		"chat_id", chatID,
+	)
+
 	if len(newItems) == 0 {
 		b.reply(chatID, fmt.Sprintf("No new matching items in #%d \"%s\".", feed.ID, feed.Name))
 		return

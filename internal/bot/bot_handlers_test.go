@@ -613,6 +613,7 @@ func TestHandleCommand(t *testing.T) {
 			text += " " + args
 		}
 		return &tgbotapi.Message{
+			From: &tgbotapi.User{ID: 42, UserName: "testuser"},
 			Chat: &tgbotapi.Chat{ID: 100},
 			Text: text,
 			Entities: []tgbotapi.MessageEntity{
@@ -670,10 +671,13 @@ func TestHandleCommand(t *testing.T) {
 func TestHandleCallback(t *testing.T) {
 	ctx := context.Background()
 
+	testUser := &tgbotapi.User{ID: 42, UserName: "testuser"}
+
 	t.Run("invalid data format", func(t *testing.T) {
 		b, api, _ := newTestBot(t, "")
 		cb := &tgbotapi.CallbackQuery{
 			ID:      "cb1",
+			From:    testUser,
 			Data:    "nocolon",
 			Message: &tgbotapi.Message{Chat: &tgbotapi.Chat{ID: 100}},
 		}
@@ -687,6 +691,7 @@ func TestHandleCallback(t *testing.T) {
 		b, api, _ := newTestBot(t, "")
 		cb := &tgbotapi.CallbackQuery{
 			ID:      "cb2",
+			From:    testUser,
 			Data:    "filters:abc",
 			Message: &tgbotapi.Message{Chat: &tgbotapi.Chat{ID: 100}},
 		}
@@ -701,6 +706,7 @@ func TestHandleCallback(t *testing.T) {
 		seedFeed(t, store, 100, "Feed", "https://x.com")
 		cb := &tgbotapi.CallbackQuery{
 			ID:      "cb3",
+			From:    testUser,
 			Data:    fmt.Sprintf("filters:%d", 1),
 			Message: &tgbotapi.Message{Chat: &tgbotapi.Chat{ID: 100}},
 		}
@@ -713,6 +719,7 @@ func TestHandleCallback(t *testing.T) {
 		seedFeed(t, store, 100, "Feed", "https://x.com")
 		cb := &tgbotapi.CallbackQuery{
 			ID:      "cb4",
+			From:    testUser,
 			Data:    "delete:1",
 			Message: &tgbotapi.Message{Chat: &tgbotapi.Chat{ID: 100}},
 		}
@@ -725,11 +732,11 @@ func TestHandleCallback(t *testing.T) {
 		seedFeed(t, store, 100, "Feed", "https://x.com")
 		cb := &tgbotapi.CallbackQuery{
 			ID:      "cb5",
+			From:    testUser,
 			Data:    "delete_confirm:1",
 			Message: &tgbotapi.Message{Chat: &tgbotapi.Chat{ID: 100}},
 		}
 		b.handleCallback(ctx, cb)
-		// delete_confirm sends a MessageConfig with inline keyboard, captured by mockAPI
 	})
 
 	t.Run("rmfilter callback", func(t *testing.T) {
@@ -738,6 +745,7 @@ func TestHandleCallback(t *testing.T) {
 		seedFilter(t, store, f.ID, model.FilterInclude, "go")
 		cb := &tgbotapi.CallbackQuery{
 			ID:      "cb6",
+			From:    testUser,
 			Data:    "rmfilter:1",
 			Message: &tgbotapi.Message{Chat: &tgbotapi.Chat{ID: 100}},
 		}

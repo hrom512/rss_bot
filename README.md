@@ -1,4 +1,4 @@
-# RSSift Bot
+# RSS Notify Bot
 
 Telegram bot for subscribing to RSS feeds with whitelist/blacklist filtering. Get notified only about the items that match your criteria.
 

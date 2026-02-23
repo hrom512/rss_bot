@@ -148,7 +148,7 @@ func requireContains(t *testing.T, got, want string) {
 func TestHandleStart(t *testing.T) {
 	b, api, _ := newTestBot(t, "")
 	b.handleStart(100)
-	requireContains(t, api.lastText(), "Welcome to RSSift Bot")
+	requireContains(t, api.lastText(), "Welcome to RSS Notify Bot")
 }
 
 func TestHandleHelp(t *testing.T) {

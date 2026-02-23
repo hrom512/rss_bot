@@ -54,7 +54,7 @@ func (f *Fetcher) Fetch(ctx context.Context, url string) (*gofeed.Feed, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
-	req.Header.Set("User-Agent", "RSSiftBot/1.0")
+	req.Header.Set("User-Agent", "RSSNotifyBot/1.0")
 
 	resp, err := f.client.Do(req)
 	if err != nil {

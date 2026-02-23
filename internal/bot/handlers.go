@@ -10,7 +10,7 @@ import (
 )
 
 func (b *Bot) handleStart(chatID int64) {
-	b.reply(chatID, `Welcome to RSSift Bot!
+	b.reply(chatID, `Welcome to RSS Notify Bot!
 
 Subscribe to RSS feeds and get filtered notifications.
 

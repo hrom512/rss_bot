@@ -213,10 +213,10 @@ func (s *SQLite) DeleteFilter(ctx context.Context, id int64) error {
 }
 
 // MarkSeen records that an RSS item has been processed.
-func (s *SQLite) MarkSeen(ctx context.Context, feedID int64, guid string) error {
+func (s *SQLite) MarkSeen(ctx context.Context, feedID int64, guid string, fullContent string) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT OR IGNORE INTO seen_items (feed_id, guid) VALUES (?, ?)`,
-		feedID, guid,
+		`INSERT OR REPLACE INTO seen_items (feed_id, guid, full_content) VALUES (?, ?, ?)`,
+		feedID, guid, fullContent,
 	)
 	if err != nil {
 		return fmt.Errorf("mark seen: %w", err)
@@ -235,6 +235,22 @@ func (s *SQLite) IsSeen(ctx context.Context, feedID int64, guid string) (bool, e
 		return false, fmt.Errorf("check seen: %w", err)
 	}
 	return count > 0, nil
+}
+
+// GetFullContent retrieves the full content for an RSS item.
+func (s *SQLite) GetFullContent(ctx context.Context, feedID int64, guid string) (string, error) {
+	var content sql.NullString
+	err := s.db.QueryRowContext(ctx,
+		`SELECT full_content FROM seen_items WHERE feed_id = ? AND guid = ?`,
+		feedID, guid,
+	).Scan(&content)
+	if err != nil {
+		return "", fmt.Errorf("get full content: %w", err)
+	}
+	if !content.Valid {
+		return "", nil
+	}
+	return content.String, nil
 }
 
 func boolToInt(b bool) int {

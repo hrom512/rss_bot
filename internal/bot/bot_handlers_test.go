@@ -433,7 +433,7 @@ func TestHandleCheck(t *testing.T) {
 		b, api, store := newTestBot(t, xml)
 		f := seedFeed(t, store, 100, "Feed", "https://x.com")
 		for _, guid := range []string{"item-1", "item-2", "item-3", "item-4", "item-5"} {
-			_ = store.MarkSeen(ctx, f.ID, guid)
+			_ = store.MarkSeen(ctx, f.ID, guid, "")
 		}
 		b.handleCheck(ctx, 100, "1")
 		requireContains(t, api.lastText(), "No new matching items")

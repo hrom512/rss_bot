@@ -276,8 +276,13 @@ func (b *Bot) handleCheck(ctx context.Context, chatID int64, args string) {
 	}
 
 	for _, item := range newItems {
-		b.reply(chatID, FormatNotification(feed.Name, item))
-		_ = b.store.MarkSeen(ctx, feed.ID, item.GUID)
+		msg := FormatNotificationShort(feed.ID, feed.Name, item)
+		if msg.Markup != nil {
+			b.SendMessageWithKeyboard(chatID, msg.Text, msg.Markup)
+		} else {
+			b.reply(chatID, msg.Text)
+		}
+		_ = b.store.MarkSeen(ctx, feed.ID, item.GUID, item.Description)
 	}
 	b.reply(chatID, fmt.Sprintf("Found %d new item(s) in #%d \"%s\".", len(newItems), feed.ID, feed.Name))
 }

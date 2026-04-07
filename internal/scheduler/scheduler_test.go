@@ -34,6 +34,12 @@ func (m *mockSender) SendMessage(chatID int64, text string) {
 	m.messages = append(m.messages, sentMessage{ChatID: chatID, Text: text})
 }
 
+func (m *mockSender) SendMessageWithKeyboard(chatID int64, text string, _ interface{}) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.messages = append(m.messages, sentMessage{ChatID: chatID, Text: text})
+}
+
 func (m *mockSender) getMessages() []sentMessage {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -140,7 +146,7 @@ func TestSchedulerSkipsSeenItems(t *testing.T) {
 
 	// Mark all items as seen
 	for _, guid := range []string{"item-1", "item-2", "item-3", "item-4", "item-5"} {
-		if err := store.MarkSeen(ctx, feed.ID, guid); err != nil {
+		if err := store.MarkSeen(ctx, feed.ID, guid, ""); err != nil {
 			t.Fatalf("mark seen %s: %v", guid, err)
 		}
 	}

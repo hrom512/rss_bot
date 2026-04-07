@@ -98,13 +98,9 @@ func FilterItems(items []*gofeed.Item, filters []model.Filter) []MatchedItem {
 			Description: item.Description,
 		}
 		if filter.Match(fi, filters) {
-			desc := item.Description
-			if len(desc) > 300 {
-				desc = desc[:300] + "..."
-			}
 			matched = append(matched, MatchedItem{
 				Title:       item.Title,
-				Description: desc,
+				Description: item.Description,
 				Link:        item.Link,
 				GUID:        ItemGUID(item),
 			})

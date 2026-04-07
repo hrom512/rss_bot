@@ -15,6 +15,7 @@ import (
 // Sender is the interface for sending Telegram messages.
 type Sender interface {
 	SendMessage(chatID int64, text string)
+	SendMessageWithKeyboard(chatID int64, text string, markup interface{})
 }
 
 // Scheduler periodically checks RSS feeds and sends notifications.
@@ -116,11 +117,15 @@ func (s *Scheduler) processFeed(ctx context.Context, feed model.Feed) {
 			continue
 		}
 
-		msg := bot.FormatNotification(feed.Name, item)
-		s.sender.SendMessage(feed.ChatID, msg)
+		msg := bot.FormatNotificationShort(feed.ID, feed.Name, item)
+		if msg.Markup != nil {
+			s.sender.SendMessageWithKeyboard(feed.ChatID, msg.Text, msg.Markup)
+		} else {
+			s.sender.SendMessage(feed.ChatID, msg.Text)
+		}
 		sent++
 
-		if err := s.store.MarkSeen(ctx, feed.ID, item.GUID); err != nil {
+		if err := s.store.MarkSeen(ctx, feed.ID, item.GUID, item.Description); err != nil {
 			s.log.Error("mark seen", "feed_id", feed.ID, "guid", item.GUID, "error", err)
 		}
 

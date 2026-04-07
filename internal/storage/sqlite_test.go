@@ -160,7 +160,7 @@ func TestDeleteFeedCascade(t *testing.T) {
 	if err := s.CreateFilter(ctx, &f); err != nil {
 		t.Fatalf("create filter: %v", err)
 	}
-	if err := s.MarkSeen(ctx, feed.ID, "guid-1"); err != nil {
+	if err := s.MarkSeen(ctx, feed.ID, "guid-1", "full content"); err != nil {
 		t.Fatalf("mark seen: %v", err)
 	}
 
@@ -287,7 +287,7 @@ func TestSeenItems(t *testing.T) {
 		}
 	})
 
-	if err := s.MarkSeen(ctx, feed.ID, "guid-1"); err != nil {
+	if err := s.MarkSeen(ctx, feed.ID, "guid-1", "full content"); err != nil {
 		t.Fatalf("mark seen: %v", err)
 	}
 
@@ -304,7 +304,7 @@ func TestSeenItems(t *testing.T) {
 	})
 
 	// Duplicate insert should not error
-	if err := s.MarkSeen(ctx, feed.ID, "guid-1"); err != nil {
+	if err := s.MarkSeen(ctx, feed.ID, "guid-1", "full content"); err != nil {
 		t.Fatalf("mark seen duplicate: %v", err)
 	}
 }

@@ -89,6 +89,19 @@ func (b *Bot) SendMessage(chatID int64, text string) {
 	}
 }
 
+// SendMessageWithKeyboard sends a text message with an inline keyboard to the given chat.
+func (b *Bot) SendMessageWithKeyboard(chatID int64, text string, markup interface{}) {
+	msg := tgbotapi.NewMessage(chatID, text)
+	msg.DisableWebPagePreview = true
+	switch m := markup.(type) {
+	case *tgbotapi.InlineKeyboardMarkup:
+		msg.ReplyMarkup = m
+	}
+	if _, err := b.api.Send(msg); err != nil {
+		b.log.Error("send message with keyboard", "chat_id", chatID, "error", err)
+	}
+}
+
 func (b *Bot) reply(chatID int64, text string) {
 	b.SendMessage(chatID, text)
 }

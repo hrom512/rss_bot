@@ -21,8 +21,9 @@ type Storage interface {
 	GetFilter(ctx context.Context, id int64) (*model.Filter, error)
 	DeleteFilter(ctx context.Context, id int64) error
 
-	MarkSeen(ctx context.Context, feedID int64, guid string) error
+	MarkSeen(ctx context.Context, feedID int64, guid string, fullContent string) error
 	IsSeen(ctx context.Context, feedID int64, guid string) (bool, error)
+	GetFullContent(ctx context.Context, feedID int64, guid string) (string, error)
 
 	Close() error
 }

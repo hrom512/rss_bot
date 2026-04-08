@@ -387,5 +387,9 @@ func (b *Bot) handleRmFilter(ctx context.Context, chatID int64, args string) {
 		return
 	}
 	remaining, _ := b.store.ListFilters(ctx, targetFeed.ID)
-	b.reply(chatID, fmt.Sprintf("Filter F%d removed from #%d \"%s\".\n\nActual filters:\n\n%s", pos, targetFeed.Position, targetFeed.Name, FormatFilterList(targetFeed, remaining)))
+	if len(remaining) > 0 {
+		b.reply(chatID, fmt.Sprintf("Filter F%d removed from #%d \"%s\".\n\nActual filters:\n\n%s", pos, targetFeed.Position, targetFeed.Name, FormatFilterList(targetFeed, remaining)))
+	} else {
+		b.reply(chatID, fmt.Sprintf("Filter F%d removed from #%d \"%s\".\n\n%s", pos, targetFeed.Position, targetFeed.Name, FormatFilterList(targetFeed, remaining)))
+	}
 }

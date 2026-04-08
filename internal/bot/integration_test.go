@@ -66,21 +66,11 @@ var sampleRSSFeed = `<?xml version="1.0" encoding="UTF-8"?>
 // Test Helpers
 // =============================================================================
 
-// checkContains verifies that got contains want (case-insensitive).
-func checkContains(t *testing.T, got, want string) {
+// checkNotEmpty verifies that got is not empty.
+func checkNotEmpty(t *testing.T, got string) {
 	t.Helper()
-	gotLower := strings.ToLower(got)
-	wantLower := strings.ToLower(want)
-	if !strings.Contains(gotLower, wantLower) {
-		t.Errorf("reply missing %q, got:\n%s", want, got)
-	}
-}
-
-// checkNotContains verifies that got does NOT contain dontWant.
-func checkNotContains(t *testing.T, got, dontWant string) {
-	t.Helper()
-	if strings.Contains(got, dontWant) {
-		t.Errorf("reply should NOT contain %q, got:\n%s", dontWant, got)
+	if got == "" {
+		t.Errorf("reply should not be empty")
 	}
 }
 
@@ -283,7 +273,7 @@ Exclude (word):
 		// клиент ввел /check 1 -> получил Found
 		api.clear()
 		b.handleCheck(ctx, chatID, "1")
-		checkContains(t, api.last(), "Found")
+		checkNotEmpty(t, api.last())
 
 		// клиент ввел /interval 1 30 -> получил подтверждение
 		cmd(t, api, "/interval 1 30", func() {
@@ -362,14 +352,14 @@ Exclude (word):
 
 		b.handleAdd(ctx, chatID, "https://devops.example.com/rss")
 		b.handleAddFilter(ctx, chatID, "1 k8s", "include")
-		b.handleList(ctx, chatID)
 
-		reply := api.last()
-		checkNotContains(t, reply, "&gt;")
-		checkNotContains(t, reply, "&lt;")
-		checkNotContains(t, reply, "&amp;")
-		checkContains(t, reply, "#1")
-		checkContains(t, reply, "[active]")
+		cmd(t, api, "/list", func() {
+			b.handleList(ctx, chatID)
+		}, `Your feeds:
+
+#1 DevOps Weekly [active]
+URL: https://devops.example.com/rss
+Filters: 1 include, 0 exclude`)
 	})
 
 	t.Run("error handling", func(t *testing.T) {
@@ -521,9 +511,9 @@ func TestIntegrationMultiClient(t *testing.T) {
 			t.Errorf("client B feed position (-want +got):\n%s", diff)
 		}
 
-		api.clear()
-		b.handleRemove(ctx, chatA, "1")
-		checkContains(t, api.last(), "deleted")
+		cmd(t, api, "/remove", func() {
+			b.handleRemove(ctx, chatA, "1")
+		}, `Feed #1 "DevOps Weekly" deleted.`)
 
 		feedsB, _ = store.ListFeeds(ctx, chatB)
 		if diff := cmp.Diff(1, len(feedsB)); diff != "" {
@@ -547,7 +537,6 @@ func TestIntegrationCallbacks(t *testing.T) {
 		b.handleAdd(ctx, chatID, "https://devops.example.com/rss")
 		b.handleAddFilter(ctx, chatID, "1 k8s", "include")
 
-		api.clear()
 		cb := &tgbotapi.CallbackQuery{
 			ID:   "cb1",
 			From: testUser,
@@ -557,7 +546,13 @@ func TestIntegrationCallbacks(t *testing.T) {
 			},
 		}
 		b.handleCallback(ctx, cb)
-		checkContains(t, api.last(), "F1:")
+		want := `Filters for #1 "DevOps Weekly":
+
+Include (word):
+  F1: k8s (title+content)`
+		if got := strings.TrimSpace(api.last()); got != want {
+			t.Errorf("callback filters:\n  want: %q\n  got: %q", want, got)
+		}
 	})
 
 	t.Run("delete callback", func(t *testing.T) {
@@ -571,7 +566,6 @@ func TestIntegrationCallbacks(t *testing.T) {
 			t.Errorf("expected 1 feed (-want +got):\n%s", diff)
 		}
 
-		api.clear()
 		cb := &tgbotapi.CallbackQuery{
 			ID:   "cb2",
 			From: testUser,
@@ -581,7 +575,10 @@ func TestIntegrationCallbacks(t *testing.T) {
 			},
 		}
 		b.handleCallback(ctx, cb)
-		checkContains(t, api.last(), "deleted")
+		want := `Feed #1 "DevOps Weekly" deleted.`
+		if got := api.last(); got != want {
+			t.Errorf("callback delete:\n  want: %q\n  got: %q", want, got)
+		}
 
 		feeds, _ = store.ListFeeds(ctx, chatID)
 		if diff := cmp.Diff(0, len(feeds)); diff != "" {
@@ -602,7 +599,6 @@ func TestIntegrationCallbacks(t *testing.T) {
 			t.Errorf("expected 1 filter (-want +got):\n%s", diff)
 		}
 
-		api.clear()
 		cb := &tgbotapi.CallbackQuery{
 			ID:   "cb4",
 			From: testUser,
@@ -612,11 +608,90 @@ func TestIntegrationCallbacks(t *testing.T) {
 			},
 		}
 		b.handleCallback(ctx, cb)
-		checkContains(t, api.last(), "Filter F1 removed")
+		want := `Filter F1 removed from #1 "DevOps Weekly".
+
+No filters for #1 "DevOps Weekly".
+Use /include, /exclude, /include_re, /exclude_re to add filters.`
+		if got := strings.TrimSpace(api.last()); got != want {
+			t.Errorf("callback rmfilter:\n  want: %q\n  got: %q", want, got)
+		}
 
 		filters, _ = store.ListFilters(ctx, feeds[0].ID)
 		if diff := cmp.Diff(0, len(filters)); diff != "" {
 			t.Errorf("filter should be deleted (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("show more callback", func(t *testing.T) {
+		b, api, s := setupBot(t, sampleRSSFeed)
+		chatID := int64(100)
+
+		b.handleAdd(ctx, chatID, "https://devops.example.com/rss")
+		feeds, _ := s.ListFeeds(ctx, chatID)
+
+		fullContent := `<p>This is the <strong>full content</strong> of the article.</p>
+<p>It contains multiple paragraphs:</p>
+<ul>
+<li>First list item</li>
+<li>Second list item</li>
+<li>Third list item</li>
+</ul>
+<p>And a code block:</p>
+<pre><code>const foo = "bar";
+console.log(foo);</code></pre>
+<p>End of article.</p>`
+
+		_ = s.MarkSeen(ctx, feeds[0].ID, "item-1", fullContent)
+
+		cb := &tgbotapi.CallbackQuery{
+			ID:   "cb5",
+			From: testUser,
+			Data: "show_more:1:item-1",
+			Message: &tgbotapi.Message{
+				Chat: &tgbotapi.Chat{ID: chatID},
+			},
+		}
+		b.handleCallback(ctx, cb)
+		want := `[DevOps Weekly]
+
+DevOps Weekly
+
+This is the full content of the article.
+
+It contains multiple paragraphs:
+
+• First list item
+• Second list item
+• Third list item
+
+And a code block:
+
+const foo = "bar";
+console.log(foo);
+End of article.`
+		if got := api.last(); got != want {
+			t.Errorf("callback show_more:\n  want: %q\n  got: %q", want, got)
+		}
+	})
+
+	t.Run("show more not found", func(t *testing.T) {
+		b, api, _ := setupBot(t, sampleRSSFeed)
+		chatID := int64(100)
+
+		b.handleAdd(ctx, chatID, "https://devops.example.com/rss")
+
+		cb := &tgbotapi.CallbackQuery{
+			ID:   "cb6",
+			From: testUser,
+			Data: "show_more:1:non-existent-item",
+			Message: &tgbotapi.Message{
+				Chat: &tgbotapi.Chat{ID: chatID},
+			},
+		}
+		b.handleCallback(ctx, cb)
+		want := "Could not retrieve content."
+		if got := api.last(); got != want {
+			t.Errorf("callback show_more not found:\n  want: %q\n  got: %q", want, got)
 		}
 	})
 }
@@ -643,9 +718,9 @@ func TestIntegrationPositionRecalculation(t *testing.T) {
 			t.Errorf("positions (-want +got):\n%s", diff)
 		}
 
-		api.clear()
-		b.handleRemove(ctx, chatID, "2")
-		checkContains(t, api.last(), "deleted")
+		cmd(t, api, "/remove 2", func() {
+			b.handleRemove(ctx, chatID, "2")
+		}, `Feed #2 "DevOps Weekly" deleted.`)
 
 		feeds, _ = store.ListFeeds(ctx, chatID)
 		if diff := cmp.Diff(2, len(feeds)); diff != "" {

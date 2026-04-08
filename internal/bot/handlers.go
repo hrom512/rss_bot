@@ -289,7 +289,9 @@ func (b *Bot) handleCheck(ctx context.Context, chatID int64, args string) {
 	}
 	now := time.Now()
 	feed.LastCheckAt = &now
-	b.store.UpdateFeed(ctx, feed)
+	if err := b.store.UpdateFeed(ctx, feed); err != nil {
+		b.log.Error("update feed last check", "error", err)
+	}
 	b.reply(chatID, fmt.Sprintf("Found %d new item(s) in #%d \"%s\".", len(newItems), pos, feed.Name))
 }
 

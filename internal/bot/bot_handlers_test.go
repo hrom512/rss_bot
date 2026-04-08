@@ -129,7 +129,7 @@ func seedFilter(t *testing.T, store *storage.SQLite, feedID int64, kind model.Fi
 
 func loadSampleXML(t *testing.T) string {
 	t.Helper()
-	data, err := os.ReadFile("../../testdata/sample.xml")
+	data, err := os.ReadFile("../../internal/testdata/sample.xml")
 	if err != nil {
 		t.Fatalf("read sample xml: %v", err)
 	}

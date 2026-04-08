@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Plain Text Feed</title>
+    <link>https://plain.example.com</link>
+    <description>Feed with plain text content</description>
+    <item>
+      <title>Simple Text Article</title>
+      <link>https://plain.example.com/article-1</link>
+      <description>This is a plain text description without any HTML tags. Just regular text content.</description>
+      <guid>plain-1</guid>
+    </item>
+    <item>
+      <title>Multiline Plain Text</title>
+      <link>https://plain.example.com/article-2</link>
+      <description>First line of the description.
+Second line of the description.
+Third line with some more content here.</description>
+      <guid>plain-2</guid>
+    </item>
+    <item>
+      <title>Plain Text with Special Characters</title>
+      <link>https://plain.example.com/article-3</link>
+      <description>Contains &amp; ampersand, &lt; less than, &gt; greater than, &quot; quotes and more text here.</description>
+      <guid>plain-3</guid>
+    </item>
+  </channel>
+</rss>

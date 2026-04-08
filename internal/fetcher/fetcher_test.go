@@ -41,7 +41,7 @@ func loadFixture(t *testing.T, path string) string {
 }
 
 func TestFetch(t *testing.T) {
-	xml := loadFixture(t, "../../testdata/sample.xml")
+	xml := loadFixture(t, "../../internal/testdata/sample.xml")
 
 	tests := []struct {
 		name      string
@@ -134,7 +134,7 @@ func TestItemGUID(t *testing.T) {
 }
 
 func TestFilterItems(t *testing.T) {
-	xml := loadFixture(t, "../../testdata/sample.xml")
+	xml := loadFixture(t, "../../internal/testdata/sample.xml")
 	parser := gofeed.NewParser()
 	feed, err := parser.ParseString(xml)
 	if err != nil {

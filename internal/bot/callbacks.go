@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+
+	"rss_bot/internal/text"
 )
 
 const (
@@ -113,8 +115,8 @@ func (b *Bot) handleShowMore(ctx context.Context, chatID int64, data string) {
 	}
 
 	processed := content
-	if IsHTML(content) {
-		processed = ParseHTMLToPlain(content).Text
+	if text.IsHTML(content) {
+		processed = text.ParseHTMLToPlain(content).Text
 	}
 
 	fullMsg := FormatNotificationFull(feed.Name, struct {

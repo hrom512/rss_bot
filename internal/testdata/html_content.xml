@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>HTML Content Feed</title>
+    <link>https://html.example.com</link>
+    <description>Feed with HTML content</description>
+    <item>
+      <title>Article with Lists and Formatting</title>
+      <link>https://html.example.com/article-1</link>
+      <description><![CDATA[<p>This is a <strong>bold</strong> and <em>italic</em> text.</p>
+<p>Here is a list:</p>
+<ul>
+<li>First item</li>
+<li>Second item</li>
+<li>Third item</li>
+</ul>
+<p>And a numbered list:</p>
+<ol>
+<li>Step one</li>
+<li>Step two</li>
+<li>Step three</li>
+</ol>
+<p>Check out <a href="https://example.com">this link</a>.</p>]]></description>
+      <guid>html-1</guid>
+    </item>
+    <item>
+      <title>Article with Image</title>
+      <link>https://html.example.com/article-2</link>
+      <description><![CDATA[<p>This article has an image:</p>
+<img src="https://example.com/image.jpg" alt="Example Image" />
+<p>Some description below the image.</p>]]></description>
+      <guid>html-2</guid>
+    </item>
+    <item>
+      <title>Article with Script (should be removed)</title>
+      <link>https://html.example.com/article-3</link>
+      <description><![CDATA[<p>Normal paragraph.</p>
+<script>alert('evil');</script>
+<p>Another paragraph.</p>]]></description>
+      <guid>html-3</guid>
+    </item>
+  </channel>
+</rss>

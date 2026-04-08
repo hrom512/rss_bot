@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Feed with Images</title>
+    <link>https://images.example.com</link>
+    <description>Feed with image enclosures and media</description>
+    <item>
+      <title>Article with Enclosure Image</title>
+      <link>https://images.example.com/article-1</link>
+      <description>Description for enclosure image article.</description>
+      <enclosure url="https://images.example.com/photo1.jpg" type="image/jpeg" length="12345"/>
+      <guid>enclosure-1</guid>
+    </item>
+    <item>
+      <title>Article with Non-Image Enclosure</title>
+      <link>https://images.example.com/article-2</link>
+      <description>Description for PDF enclosure.</description>
+      <enclosure url="https://images.example.com/document.pdf" type="application/pdf" length="67890"/>
+      <guid>enclosure-2</guid>
+    </item>
+    <item>
+      <title>Article with RSS Image</title>
+      <link>https://images.example.com/article-3</link>
+      <description>Description for RSS image element.</description>
+      <image>
+        <url>https://images.example.com/rss-logo.png</url>
+        <title>RSS Logo</title>
+      </image>
+      <guid>image-1</guid>
+    </item>
+    <item>
+      <title>Article with Content and Image</title>
+      <link>https://images.example.com/article-4</link>
+      <content:encoded><![CDATA[<p>This is <strong>HTML content</strong> with an image:</p><img src="https://images.example.com/content-image.png" alt="Content Image"/>]]></content:encoded>
+      <guid>content-image-1</guid>
+    </item>
+  </channel>
+</rss>

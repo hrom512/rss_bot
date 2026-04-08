@@ -8,78 +8,49 @@ import (
 
 	"rss_bot/internal/fetcher"
 	"rss_bot/internal/model"
+	"rss_bot/internal/text"
 )
 
 const (
 	statusActive     = "active"
 	statusPaused     = "paused"
 	callbackShowMore = "show_more"
-	maxPreviewLength = 1500
 )
-
-// FormatNotification formats an RSS item as a Telegram notification message.
-func FormatNotification(feedName string, item fetcher.MatchedItem) string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "[%s]\n\n", feedName)
-	b.WriteString(item.Title)
-	if item.Description != "" {
-		b.WriteString("\n\n")
-		b.WriteString(item.Description)
-	}
-	if item.Link != "" {
-		b.WriteString("\n\n")
-		b.WriteString(item.Link)
-	}
-	return b.String()
-}
 
 // NotificationWithKeyboard holds a formatted notification and its optional keyboard.
 type NotificationWithKeyboard struct {
-	Text   string
-	Markup *tgbotapi.InlineKeyboardMarkup
+	Text     string
+	ImageURL string
+	Markup   *tgbotapi.InlineKeyboardMarkup
 }
 
 // FormatNotificationShort formats a shortened notification with a "Show more" button.
 func FormatNotificationShort(feedID int64, feedName string, item fetcher.MatchedItem) NotificationWithKeyboard {
-	var b strings.Builder
-	fmt.Fprintf(&b, "[%s]\n\n", feedName)
-	b.WriteString(item.Title)
-
-	desc := item.Description
-	hasMore := false
-	if len(desc) > maxPreviewLength {
-		desc = desc[:maxPreviewLength]
-		hasMore = true
-	}
-
-	if desc != "" {
-		b.WriteString("\n\n")
-		b.WriteString(desc)
-	}
-
-	link := item.Link
-	if link != "" {
-		b.WriteString("\n\n")
-		b.WriteString(link)
-	}
+	formatted := text.FormatNotificationShort(feedID, feedName, item)
 
 	var markup *tgbotapi.InlineKeyboardMarkup
-	if hasMore {
+	if formatted.Truncated {
 		row := tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Показать ещё", fmt.Sprintf("%s:%d:%s", callbackShowMore, feedID, item.GUID)),
+			tgbotapi.NewInlineKeyboardButtonData("Show more", fmt.Sprintf("%s:%d:%s", callbackShowMore, feedID, item.GUID)),
 		)
 		markup = &tgbotapi.InlineKeyboardMarkup{InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{row}}
 	}
 
 	return NotificationWithKeyboard{
-		Text:   b.String(),
-		Markup: markup,
+		Text:     formatted.Text,
+		ImageURL: formatted.ImageURL,
+		Markup:   markup,
 	}
+}
+
+// FormatNotification formats an RSS item as a Telegram notification message.
+func FormatNotification(feedName string, item fetcher.MatchedItem) string {
+	return text.FormatNotification(feedName, item)
 }
 
 // FormatNotificationFull formats a full notification without truncation.
 func FormatNotificationFull(feedName string, item fetcher.MatchedItem) string {
-	return FormatNotification(feedName, item)
+	return text.FormatNotificationFull(feedName, item)
 }
 
 // FormatFeedList formats a list of feeds for display.

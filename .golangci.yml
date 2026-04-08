@@ -33,3 +33,6 @@ issues:
       linters: [ govet ]
     - text: 'package-comments: should have a package comment'
       linters: [ revive ]
+    - text: 'G304: Potential file inclusion via variable'
+      path: '_test\.go'
+      linters: [ gosec ]

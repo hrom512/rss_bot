@@ -102,6 +102,20 @@ func (b *Bot) SendMessageWithKeyboard(chatID int64, text string, markup interfac
 	}
 }
 
+// SendPhotoWithCaption sends a photo with caption and optional keyboard.
+func (b *Bot) SendPhotoWithCaption(chatID int64, photoURL string, caption string, markup interface{}) {
+	photo := tgbotapi.NewPhoto(chatID, tgbotapi.FileURL(photoURL))
+	photo.Caption = caption
+	photo.ParseMode = tgbotapi.ModeHTML
+	switch m := markup.(type) {
+	case *tgbotapi.InlineKeyboardMarkup:
+		photo.ReplyMarkup = m
+	}
+	if _, err := b.api.Send(photo); err != nil {
+		b.log.Error("send photo", "chat_id", chatID, "photo_url", photoURL, "error", err)
+	}
+}
+
 func (b *Bot) reply(chatID int64, text string) {
 	b.SendMessage(chatID, text)
 }

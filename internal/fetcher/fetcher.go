@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/mmcdole/gofeed"
@@ -30,8 +31,10 @@ type Result struct {
 type MatchedItem struct {
 	Title       string
 	Description string
+	Content     string
 	Link        string
 	GUID        string
+	ImageURL    string
 }
 
 // Fetcher downloads and parses RSS feeds.
@@ -98,13 +101,30 @@ func FilterItems(items []*gofeed.Item, filters []model.Filter) []MatchedItem {
 			Description: item.Description,
 		}
 		if filter.Match(fi, filters) {
-			matched = append(matched, MatchedItem{
+			mi := MatchedItem{
 				Title:       item.Title,
 				Description: item.Description,
+				Content:     item.Content,
 				Link:        item.Link,
 				GUID:        ItemGUID(item),
-			})
+				ImageURL:    extractImageURL(item),
+			}
+			matched = append(matched, mi)
 		}
 	}
 	return matched
+}
+
+func extractImageURL(item *gofeed.Item) string {
+	for _, enc := range item.Enclosures {
+		if enc.URL != "" && strings.HasPrefix(enc.Type, "image/") {
+			return enc.URL
+		}
+	}
+
+	if item.Image != nil && item.Image.URL != "" {
+		return item.Image.URL
+	}
+
+	return ""
 }

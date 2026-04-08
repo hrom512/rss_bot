@@ -16,6 +16,16 @@ const (
 	cmdFilters  = "filters"
 	cmdRmFilter = "rmfilter"
 	cmdShowMore = "show_more"
+
+	cmdAdd      = "add"
+	cmdInfo     = "info"
+	cmdRemove   = "remove"
+	cmdRename   = "rename"
+	cmdInterval = "interval"
+	cmdPause    = "pause"
+	cmdResume   = "resume"
+	cmdInclude  = "include"
+	cmdExclude  = "exclude"
 )
 
 func (b *Bot) handleCallback(ctx context.Context, cb *tgbotapi.CallbackQuery) {

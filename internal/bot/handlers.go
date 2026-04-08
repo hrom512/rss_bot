@@ -74,8 +74,12 @@ func (b *Bot) handleAdd(ctx context.Context, chatID int64, args string) {
 		return
 	}
 
-	b.reply(chatID, fmt.Sprintf("Feed added successfully!\n#%d %s (every %d min)\nURL: %s\nNo filters yet. Use /include, /exclude to add filters.",
-		f.ID, f.Name, f.IntervalMinutes, f.URL))
+	b.reply(chatID, fmt.Sprintf(`Feed added successfully!
+
+#%d %s (every %d min)
+URL: %s
+No filters yet. Use /include, /exclude to add filters.`,
+		f.Position, f.Name, f.IntervalMinutes, f.URL))
 }
 
 func (b *Bot) handleList(ctx context.Context, chatID int64) {
@@ -107,19 +111,15 @@ func (b *Bot) handleList(ctx context.Context, chatID int64) {
 }
 
 func (b *Bot) handleInfo(ctx context.Context, chatID int64, args string) {
-	id, err := ParseIDArg(args)
+	pos, err := ParseFeedArg(args)
 	if err != nil {
-		b.reply(chatID, "Usage: /info <id>")
+		b.reply(chatID, "Usage: /info <number>")
 		return
 	}
 
-	feed, err := b.store.GetFeed(ctx, id)
+	feed, err := b.store.GetFeedByPosition(ctx, chatID, pos)
 	if err != nil {
-		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", id))
-		return
-	}
-	if feed.ChatID != chatID {
-		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", id))
+		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", pos))
 		return
 	}
 
@@ -128,35 +128,35 @@ func (b *Bot) handleInfo(ctx context.Context, chatID int64, args string) {
 }
 
 func (b *Bot) handleRemove(ctx context.Context, chatID int64, args string) {
-	id, err := ParseIDArg(args)
+	pos, err := ParseFeedArg(args)
 	if err != nil {
-		b.reply(chatID, "Usage: /remove <id>")
+		b.reply(chatID, "Usage: /remove <number>")
 		return
 	}
 
-	feed, err := b.store.GetFeed(ctx, id)
-	if err != nil || feed.ChatID != chatID {
-		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", id))
+	feed, err := b.store.GetFeedByPosition(ctx, chatID, pos)
+	if err != nil {
+		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", pos))
 		return
 	}
 
-	if err := b.store.DeleteFeed(ctx, id); err != nil {
+	if err := b.store.DeleteFeed(ctx, feed.ID); err != nil {
 		b.reply(chatID, fmt.Sprintf("Error deleting feed: %v", err))
 		return
 	}
-	b.reply(chatID, fmt.Sprintf("Feed #%d \"%s\" deleted.", id, feed.Name))
+	b.reply(chatID, fmt.Sprintf("Feed #%d \"%s\" deleted.", pos, feed.Name))
 }
 
 func (b *Bot) handleRename(ctx context.Context, chatID int64, args string) {
-	id, name, err := ParseRenameArgs(args)
+	pos, name, err := ParseRenameArgs(args)
 	if err != nil {
 		b.reply(chatID, err.Error())
 		return
 	}
 
-	feed, err := b.store.GetFeed(ctx, id)
-	if err != nil || feed.ChatID != chatID {
-		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", id))
+	feed, err := b.store.GetFeedByPosition(ctx, chatID, pos)
+	if err != nil {
+		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", pos))
 		return
 	}
 
@@ -165,19 +165,19 @@ func (b *Bot) handleRename(ctx context.Context, chatID int64, args string) {
 		b.reply(chatID, fmt.Sprintf("Error: %v", err))
 		return
 	}
-	b.reply(chatID, fmt.Sprintf("Feed #%d renamed to \"%s\".", id, name))
+	b.reply(chatID, fmt.Sprintf("Feed #%d renamed to \"%s\".", pos, name))
 }
 
 func (b *Bot) handleInterval(ctx context.Context, chatID int64, args string) {
-	id, mins, err := ParseIntervalArgs(args)
+	pos, mins, err := ParseIntervalArgs(args)
 	if err != nil {
 		b.reply(chatID, err.Error())
 		return
 	}
 
-	feed, err := b.store.GetFeed(ctx, id)
-	if err != nil || feed.ChatID != chatID {
-		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", id))
+	feed, err := b.store.GetFeedByPosition(ctx, chatID, pos)
+	if err != nil {
+		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", pos))
 		return
 	}
 
@@ -186,19 +186,19 @@ func (b *Bot) handleInterval(ctx context.Context, chatID int64, args string) {
 		b.reply(chatID, fmt.Sprintf("Error: %v", err))
 		return
 	}
-	b.reply(chatID, fmt.Sprintf("Feed #%d interval set to %d min.", id, mins))
+	b.reply(chatID, fmt.Sprintf("Feed #%d interval set to %d min.", pos, mins))
 }
 
 func (b *Bot) handlePause(ctx context.Context, chatID int64, args string) {
-	id, err := ParseIDArg(args)
+	pos, err := ParseFeedArg(args)
 	if err != nil {
-		b.reply(chatID, "Usage: /pause <id>")
+		b.reply(chatID, "Usage: /pause <number>")
 		return
 	}
 
-	feed, err := b.store.GetFeed(ctx, id)
-	if err != nil || feed.ChatID != chatID {
-		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", id))
+	feed, err := b.store.GetFeedByPosition(ctx, chatID, pos)
+	if err != nil {
+		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", pos))
 		return
 	}
 
@@ -207,19 +207,19 @@ func (b *Bot) handlePause(ctx context.Context, chatID int64, args string) {
 		b.reply(chatID, fmt.Sprintf("Error: %v", err))
 		return
 	}
-	b.reply(chatID, fmt.Sprintf("Feed #%d \"%s\" paused.", id, feed.Name))
+	b.reply(chatID, fmt.Sprintf("Feed #%d \"%s\" paused.", pos, feed.Name))
 }
 
 func (b *Bot) handleResume(ctx context.Context, chatID int64, args string) {
-	id, err := ParseIDArg(args)
+	pos, err := ParseFeedArg(args)
 	if err != nil {
-		b.reply(chatID, "Usage: /resume <id>")
+		b.reply(chatID, "Usage: /resume <number>")
 		return
 	}
 
-	feed, err := b.store.GetFeed(ctx, id)
-	if err != nil || feed.ChatID != chatID {
-		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", id))
+	feed, err := b.store.GetFeedByPosition(ctx, chatID, pos)
+	if err != nil {
+		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", pos))
 		return
 	}
 
@@ -228,19 +228,19 @@ func (b *Bot) handleResume(ctx context.Context, chatID int64, args string) {
 		b.reply(chatID, fmt.Sprintf("Error: %v", err))
 		return
 	}
-	b.reply(chatID, fmt.Sprintf("Feed #%d \"%s\" resumed.", id, feed.Name))
+	b.reply(chatID, fmt.Sprintf("Feed #%d \"%s\" resumed.", pos, feed.Name))
 }
 
 func (b *Bot) handleCheck(ctx context.Context, chatID int64, args string) {
-	id, err := ParseIDArg(args)
+	pos, err := ParseFeedArg(args)
 	if err != nil {
-		b.reply(chatID, "Usage: /check <id>")
+		b.reply(chatID, "Usage: /check <number>")
 		return
 	}
 
-	feed, err := b.store.GetFeed(ctx, id)
-	if err != nil || feed.ChatID != chatID {
-		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", id))
+	feed, err := b.store.GetFeedByPosition(ctx, chatID, pos)
+	if err != nil {
+		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", pos))
 		return
 	}
 
@@ -271,12 +271,12 @@ func (b *Bot) handleCheck(ctx context.Context, chatID int64, args string) {
 	)
 
 	if len(newItems) == 0 {
-		b.reply(chatID, fmt.Sprintf("No new matching items in #%d \"%s\".", feed.ID, feed.Name))
+		b.reply(chatID, fmt.Sprintf("No new matching items in #%d \"%s\".", pos, feed.Name))
 		return
 	}
 
 	for _, item := range newItems {
-		msg := FormatNotificationShort(feed.ID, feed.Name, item)
+		msg := FormatNotificationShort(feed.Position, feed.Name, item)
 		if msg.ImageURL != "" {
 			b.SendPhotoWithCaption(chatID, msg.ImageURL, msg.Text, msg.Markup)
 		} else if msg.Markup != nil {
@@ -286,24 +286,24 @@ func (b *Bot) handleCheck(ctx context.Context, chatID int64, args string) {
 		}
 		_ = b.store.MarkSeen(ctx, feed.ID, item.GUID, item.Description)
 	}
-	b.reply(chatID, fmt.Sprintf("Found %d new item(s) in #%d \"%s\".", len(newItems), feed.ID, feed.Name))
+	b.reply(chatID, fmt.Sprintf("Found %d new item(s) in #%d \"%s\".", len(newItems), pos, feed.Name))
 }
 
 func (b *Bot) handleFilters(ctx context.Context, chatID int64, args string) {
-	id, err := ParseIDArg(args)
+	pos, err := ParseFeedArg(args)
 	if err != nil {
-		b.reply(chatID, "Usage: /filters <id>")
+		b.reply(chatID, "Usage: /filters <number>")
 		return
 	}
 
-	feed, err := b.store.GetFeed(ctx, id)
-	if err != nil || feed.ChatID != chatID {
-		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", id))
+	feed, err := b.store.GetFeedByPosition(ctx, chatID, pos)
+	if err != nil {
+		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", pos))
 		return
 	}
 
 	filters, _ := b.store.ListFilters(ctx, feed.ID)
-	b.reply(chatID, FormatFilterList(feed, filters))
+	b.reply(chatID, fmt.Sprintf("Filters for #%d \"%s\":\n\n%s", feed.Position, feed.Name, FormatFilterList(feed, filters)))
 }
 
 func (b *Bot) handleAddFilter(ctx context.Context, chatID int64, args string, kind string) {
@@ -313,9 +313,9 @@ func (b *Bot) handleAddFilter(ctx context.Context, chatID int64, args string, ki
 		return
 	}
 
-	feed, err := b.store.GetFeed(ctx, parsed.FeedID)
-	if err != nil || feed.ChatID != chatID {
-		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", parsed.FeedID))
+	feed, err := b.store.GetFeedByPosition(ctx, chatID, parsed.FeedPosition)
+	if err != nil {
+		b.reply(chatID, fmt.Sprintf("Feed #%d not found.", parsed.FeedPosition))
 		return
 	}
 
@@ -328,7 +328,7 @@ func (b *Bot) handleAddFilter(ctx context.Context, chatID int64, args string, ki
 	}
 
 	f := &model.Filter{
-		FeedID: parsed.FeedID,
+		FeedID: feed.ID,
 		Kind:   fk,
 		Scope:  parsed.Scope,
 		Value:  parsed.Value,
@@ -338,32 +338,54 @@ func (b *Bot) handleAddFilter(ctx context.Context, chatID int64, args string, ki
 		return
 	}
 
-	b.reply(chatID, fmt.Sprintf("Filter F%d added to #%d \"%s\": %s %s (%s)",
-		f.ID, feed.ID, feed.Name, kind, parsed.Value, scopeLabel(parsed.Scope)))
+	filters, _ := b.store.ListFilters(ctx, feed.ID)
+	b.reply(chatID, fmt.Sprintf("Filter F%d added to #%d \"%s\".\n\nActual filters:\n\n%s", f.Position, feed.Position, feed.Name, FormatFilterList(feed, filters)))
 }
 
 func (b *Bot) handleRmFilter(ctx context.Context, chatID int64, args string) {
-	id, err := ParseIDArg(args)
+	pos, err := ParseFilterArg(args)
 	if err != nil {
-		b.reply(chatID, "Usage: /rmfilter <filter_id>")
+		b.reply(chatID, "Usage: /rmfilter <filter_number>")
 		return
 	}
 
-	f, err := b.store.GetFilter(ctx, id)
+	feeds, err := b.store.ListFeeds(ctx, chatID)
 	if err != nil {
-		b.reply(chatID, fmt.Sprintf("Filter F%d not found.", id))
-		return
-	}
-
-	feed, err := b.store.GetFeed(ctx, f.FeedID)
-	if err != nil || feed.ChatID != chatID {
-		b.reply(chatID, fmt.Sprintf("Filter F%d not found.", id))
-		return
-	}
-
-	if err := b.store.DeleteFilter(ctx, id); err != nil {
 		b.reply(chatID, fmt.Sprintf("Error: %v", err))
 		return
 	}
-	b.reply(chatID, fmt.Sprintf("Filter F%d removed from #%d \"%s\".", id, feed.ID, feed.Name))
+
+	var targetFilter *model.Filter
+	var targetFeed *model.Feed
+
+	for i := range feeds {
+		filters, err := b.store.ListFilters(ctx, feeds[i].ID)
+		if err != nil {
+			continue
+		}
+		for j := range filters {
+			if filters[j].Position == pos {
+				f := filters[j]
+				targetFilter = &f
+				fp := feeds[i]
+				targetFeed = &fp
+				break
+			}
+		}
+		if targetFilter != nil {
+			break
+		}
+	}
+
+	if targetFilter == nil || targetFeed == nil {
+		b.reply(chatID, fmt.Sprintf("Filter F%d not found.", pos))
+		return
+	}
+
+	if err := b.store.DeleteFilter(ctx, targetFilter.ID); err != nil {
+		b.reply(chatID, fmt.Sprintf("Error: %v", err))
+		return
+	}
+	remaining, _ := b.store.ListFilters(ctx, targetFeed.ID)
+	b.reply(chatID, fmt.Sprintf("Filter F%d removed from #%d \"%s\".\n\nActual filters:\n\n%s", pos, targetFeed.Position, targetFeed.Name, FormatFilterList(targetFeed, remaining)))
 }

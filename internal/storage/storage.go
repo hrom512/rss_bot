@@ -11,6 +11,7 @@ import (
 type Storage interface {
 	CreateFeed(ctx context.Context, feed *model.Feed) error
 	GetFeed(ctx context.Context, id int64) (*model.Feed, error)
+	GetFeedByPosition(ctx context.Context, chatID int64, position int) (*model.Feed, error)
 	ListFeeds(ctx context.Context, chatID int64) ([]model.Feed, error)
 	ListDueFeeds(ctx context.Context) ([]model.Feed, error)
 	UpdateFeed(ctx context.Context, feed *model.Feed) error
@@ -19,6 +20,7 @@ type Storage interface {
 	CreateFilter(ctx context.Context, f *model.Filter) error
 	ListFilters(ctx context.Context, feedID int64) ([]model.Filter, error)
 	GetFilter(ctx context.Context, id int64) (*model.Filter, error)
+	GetFilterByPosition(ctx context.Context, feedID int64, position int) (*model.Filter, error)
 	DeleteFilter(ctx context.Context, id int64) error
 
 	MarkSeen(ctx context.Context, feedID int64, guid string, fullContent string) error

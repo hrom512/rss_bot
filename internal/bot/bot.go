@@ -138,30 +138,30 @@ func (b *Bot) handleCommand(ctx context.Context, msg *tgbotapi.Message) {
 		b.handleStart(chatID)
 	case "help":
 		b.handleHelp(chatID)
-	case "add":
+	case cmdAdd:
 		b.handleAdd(ctx, chatID, args)
 	case "list":
 		b.handleList(ctx, chatID)
-	case "info":
+	case cmdInfo:
 		b.handleInfo(ctx, chatID, args)
-	case "remove":
+	case cmdRemove:
 		b.handleRemove(ctx, chatID, args)
-	case "rename":
+	case cmdRename:
 		b.handleRename(ctx, chatID, args)
-	case "interval":
+	case cmdInterval:
 		b.handleInterval(ctx, chatID, args)
-	case "pause":
+	case cmdPause:
 		b.handlePause(ctx, chatID, args)
-	case "resume":
+	case cmdResume:
 		b.handleResume(ctx, chatID, args)
 	case cmdCheck:
 		b.handleCheck(ctx, chatID, args)
 	case cmdFilters:
 		b.handleFilters(ctx, chatID, args)
-	case "include":
-		b.handleAddFilter(ctx, chatID, args, "include")
-	case "exclude":
-		b.handleAddFilter(ctx, chatID, args, "exclude")
+	case cmdInclude:
+		b.handleAddFilter(ctx, chatID, args, cmdInclude)
+	case cmdExclude:
+		b.handleAddFilter(ctx, chatID, args, cmdExclude)
 	case "include_re":
 		b.handleAddFilter(ctx, chatID, args, "include_re")
 	case "exclude_re":

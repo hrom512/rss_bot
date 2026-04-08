@@ -10,22 +10,22 @@ import (
 
 // FilterArgs holds the parsed arguments of a filter command.
 type FilterArgs struct {
-	FeedID int64
-	Scope  model.FilterScope
-	Value  string
+	FeedPosition int
+	Scope        model.FilterScope
+	Value        string
 }
 
 // ParseFilterCommand parses arguments for /include, /exclude, etc.
-// Format: <feed_id> [-s title|content|all] <value...>
+// Format: <feed_position> [-s title|content|all] <value...>
 func ParseFilterCommand(args string) (FilterArgs, error) {
 	parts := strings.Fields(args)
 	if len(parts) < 2 {
-		return FilterArgs{}, fmt.Errorf("usage: <feed_id> [-s title|content|all] <value>")
+		return FilterArgs{}, fmt.Errorf("usage: <feed_number> [-s title|content|all] <value>")
 	}
 
-	feedID, err := strconv.ParseInt(parts[0], 10, 64)
+	feedPos, err := strconv.Atoi(parts[0])
 	if err != nil {
-		return FilterArgs{}, fmt.Errorf("invalid feed ID %q", parts[0])
+		return FilterArgs{}, fmt.Errorf("invalid feed number %q", parts[0])
 	}
 
 	scope := model.ScopeAll
@@ -50,55 +50,68 @@ func ParseFilterCommand(args string) (FilterArgs, error) {
 	}
 
 	return FilterArgs{
-		FeedID: feedID,
-		Scope:  scope,
-		Value:  strings.Join(rest, " "),
+		FeedPosition: feedPos,
+		Scope:        scope,
+		Value:        strings.Join(rest, " "),
 	}, nil
 }
 
-// ParseIDArg extracts a numeric ID from a command argument string.
-func ParseIDArg(args string) (int64, error) {
+// ParseFeedArg extracts a local feed number from a command argument string.
+func ParseFeedArg(args string) (int, error) {
 	s := strings.TrimSpace(args)
 	if s == "" {
-		return 0, fmt.Errorf("feed ID is required")
+		return 0, fmt.Errorf("feed number is required")
 	}
-	id, err := strconv.ParseInt(strings.Fields(s)[0], 10, 64)
+	n, err := strconv.Atoi(strings.Fields(s)[0])
 	if err != nil {
-		return 0, fmt.Errorf("invalid feed ID %q", s)
+		return 0, fmt.Errorf("invalid feed number %q", s)
 	}
-	return id, nil
+	return n, nil
 }
 
-// ParseRenameArgs extracts a feed ID and new name from command arguments.
-func ParseRenameArgs(args string) (int64, string, error) {
+// ParseFilterArg extracts a local filter number from a command argument string.
+func ParseFilterArg(args string) (int, error) {
+	s := strings.TrimSpace(args)
+	if s == "" {
+		return 0, fmt.Errorf("filter number is required")
+	}
+	n, err := strconv.Atoi(strings.Fields(s)[0])
+	if err != nil {
+		return 0, fmt.Errorf("invalid filter number %q", s)
+	}
+	return n, nil
+}
+
+// ParseRenameArgs extracts a feed number and new name from command arguments.
+func ParseRenameArgs(args string) (int, string, error) {
 	parts := strings.SplitN(strings.TrimSpace(args), " ", 2)
 	if len(parts) < 2 {
-		return 0, "", fmt.Errorf("usage: /rename <id> <new_name>")
+		return 0, "", fmt.Errorf("usage: /rename <number> <new_name>")
 	}
-	id, err := strconv.ParseInt(parts[0], 10, 64)
+	n, err := strconv.Atoi(parts[0])
 	if err != nil {
-		return 0, "", fmt.Errorf("invalid feed ID %q", parts[0])
+		return 0, "", fmt.Errorf("invalid feed number %q", parts[0])
 	}
 	name := strings.TrimSpace(parts[1])
 	if name == "" {
 		return 0, "", fmt.Errorf("new name cannot be empty")
 	}
-	return id, name, nil
+	return n, name, nil
 }
 
-// ParseIntervalArgs extracts a feed ID and interval in minutes.
-func ParseIntervalArgs(args string) (int64, int, error) {
+// ParseIntervalArgs extracts a feed number and interval in minutes.
+func ParseIntervalArgs(args string) (int, int, error) {
 	parts := strings.Fields(args)
 	if len(parts) < 2 {
-		return 0, 0, fmt.Errorf("usage: /interval <id> <minutes>")
+		return 0, 0, fmt.Errorf("usage: /interval <number> <minutes>")
 	}
-	id, err := strconv.ParseInt(parts[0], 10, 64)
+	n, err := strconv.Atoi(parts[0])
 	if err != nil {
-		return 0, 0, fmt.Errorf("invalid feed ID %q", parts[0])
+		return 0, 0, fmt.Errorf("invalid feed number %q", parts[0])
 	}
 	mins, err := strconv.Atoi(parts[1])
 	if err != nil || mins < 1 || mins > 1440 {
 		return 0, 0, fmt.Errorf("interval must be between 1 and 1440 minutes")
 	}
-	return id, mins, nil
+	return n, mins, nil
 }

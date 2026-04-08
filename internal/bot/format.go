@@ -87,6 +87,9 @@ func FormatFeedInfo(feed *model.Feed, filters []model.Filter) string {
 	fmt.Fprintf(&b, "#%d %s [%s]\n", feed.Position, feed.Name, status)
 	fmt.Fprintf(&b, "URL: %s\n", feed.URL)
 	fmt.Fprintf(&b, "Interval: every %d min\n", feed.IntervalMinutes)
+	if feed.LastCheckAt != nil {
+		fmt.Fprintf(&b, "Last check: %s\n", feed.LastCheckAt.Format("2006-01-02 15:04 UTC"))
+	}
 	b.WriteString("\nFilters:\n\n")
 	b.WriteString(FormatFilterList(feed, filters))
 	return b.String()

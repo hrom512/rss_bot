@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -61,18 +62,6 @@ var sampleRSSFeed = `<?xml version="1.0" encoding="UTF-8"?>
     </item>
   </channel>
 </rss>`
-
-// =============================================================================
-// Test Helpers
-// =============================================================================
-
-// checkNotEmpty verifies that got is not empty.
-func checkNotEmpty(t *testing.T, got string) {
-	t.Helper()
-	if got == "" {
-		t.Errorf("reply should not be empty")
-	}
-}
 
 // ========================================
 // Integration Test Helpers
@@ -273,7 +262,27 @@ Exclude (word):
 		// клиент ввел /check 1 -> получил Found
 		api.clear()
 		b.handleCheck(ctx, chatID, "1")
-		checkNotEmpty(t, api.last())
+		want := `Found 1 new item(s) in #1 "DevOps Weekly".`
+		if got := api.last(); got != want {
+			t.Errorf("/check:\n  want: %q\n  got: %q", want, got)
+		}
+
+		api.clear()
+		feedAfterCheck, _ := store.GetFeed(ctx, feeds[0].ID)
+		cmd(t, api, "/info after check", func() {
+			b.handleInfo(ctx, chatID, "1")
+		}, fmt.Sprintf(`#1 DevOps Weekly [active]
+URL: https://devops.example.com/rss
+Interval: every 15 min
+Last check: %s
+
+Filters:
+
+Include (word):
+  F1: kubernetes (title+content)
+
+Exclude (word):
+  F2: spam (title only)`, feedAfterCheck.LastCheckAt.Format("2006-01-02 15:04 UTC")))
 
 		// клиент ввел /interval 1 30 -> получил подтверждение
 		cmd(t, api, "/interval 1 30", func() {

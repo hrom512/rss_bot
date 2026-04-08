@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"rss_bot/internal/fetcher"
 	"rss_bot/internal/filter"
@@ -286,6 +287,9 @@ func (b *Bot) handleCheck(ctx context.Context, chatID int64, args string) {
 		}
 		_ = b.store.MarkSeen(ctx, feed.ID, item.GUID, item.Description)
 	}
+	now := time.Now()
+	feed.LastCheckAt = &now
+	b.store.UpdateFeed(ctx, feed)
 	b.reply(chatID, fmt.Sprintf("Found %d new item(s) in #%d \"%s\".", len(newItems), pos, feed.Name))
 }
 

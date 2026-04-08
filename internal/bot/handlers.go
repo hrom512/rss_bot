@@ -277,7 +277,9 @@ func (b *Bot) handleCheck(ctx context.Context, chatID int64, args string) {
 
 	for _, item := range newItems {
 		msg := FormatNotificationShort(feed.ID, feed.Name, item)
-		if msg.Markup != nil {
+		if msg.ImageURL != "" {
+			b.SendPhotoWithCaption(chatID, msg.ImageURL, msg.Text, msg.Markup)
+		} else if msg.Markup != nil {
 			b.SendMessageWithKeyboard(chatID, msg.Text, msg.Markup)
 		} else {
 			b.reply(chatID, msg.Text)

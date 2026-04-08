@@ -17,14 +17,44 @@ const (
 	maxPreviewLength = 1500
 )
 
+func getContentText(item fetcher.MatchedItem) string {
+	if item.Content != "" {
+		if IsHTML(item.Content) {
+			return ParseHTMLToPlain(item.Content).Text
+		}
+		return item.Content
+	}
+	if item.Description != "" {
+		if IsHTML(item.Description) {
+			return ParseHTMLToPlain(item.Description).Text
+		}
+		return item.Description
+	}
+	return ""
+}
+
+func getImageURL(item fetcher.MatchedItem) string {
+	if item.ImageURL != "" {
+		return item.ImageURL
+	}
+	if item.Content != "" && IsHTML(item.Content) {
+		return ParseHTMLToPlain(item.Content).ImageURL
+	}
+	if item.Description != "" && IsHTML(item.Description) {
+		return ParseHTMLToPlain(item.Description).ImageURL
+	}
+	return ""
+}
+
 // FormatNotification formats an RSS item as a Telegram notification message.
 func FormatNotification(feedName string, item fetcher.MatchedItem) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "[%s]\n\n", feedName)
 	b.WriteString(item.Title)
-	if item.Description != "" {
+	desc := getContentText(item)
+	if desc != "" {
 		b.WriteString("\n\n")
-		b.WriteString(item.Description)
+		b.WriteString(desc)
 	}
 	if item.Link != "" {
 		b.WriteString("\n\n")
@@ -35,8 +65,9 @@ func FormatNotification(feedName string, item fetcher.MatchedItem) string {
 
 // NotificationWithKeyboard holds a formatted notification and its optional keyboard.
 type NotificationWithKeyboard struct {
-	Text   string
-	Markup *tgbotapi.InlineKeyboardMarkup
+	Text     string
+	ImageURL string
+	Markup   *tgbotapi.InlineKeyboardMarkup
 }
 
 // FormatNotificationShort formats a shortened notification with a "Show more" button.
@@ -45,7 +76,7 @@ func FormatNotificationShort(feedID int64, feedName string, item fetcher.Matched
 	fmt.Fprintf(&b, "[%s]\n\n", feedName)
 	b.WriteString(item.Title)
 
-	desc := item.Description
+	desc := getContentText(item)
 	hasMore := false
 	if len(desc) > maxPreviewLength {
 		desc = desc[:maxPreviewLength]
@@ -72,8 +103,9 @@ func FormatNotificationShort(feedID int64, feedName string, item fetcher.Matched
 	}
 
 	return NotificationWithKeyboard{
-		Text:   b.String(),
-		Markup: markup,
+		Text:     b.String(),
+		ImageURL: getImageURL(item),
+		Markup:   markup,
 	}
 }
 

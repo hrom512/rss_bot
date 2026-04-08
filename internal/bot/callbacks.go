@@ -112,16 +112,25 @@ func (b *Bot) handleShowMore(ctx context.Context, chatID int64, data string) {
 		return
 	}
 
+	processed := content
+	if IsHTML(content) {
+		processed = ParseHTMLToPlain(content).Text
+	}
+
 	fullMsg := FormatNotificationFull(feed.Name, struct {
 		Title       string
 		Description string
+		Content     string
 		Link        string
 		GUID        string
+		ImageURL    string
 	}{
-		Title:       "",
-		Description: content,
+		Title:       feed.Name,
+		Description: processed,
+		Content:     "",
 		Link:        "",
 		GUID:        guid,
+		ImageURL:    "",
 	})
 	b.reply(chatID, fullMsg)
 }

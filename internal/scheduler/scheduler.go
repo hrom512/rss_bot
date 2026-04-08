@@ -117,7 +117,7 @@ func (s *Scheduler) processFeed(ctx context.Context, feed model.Feed) {
 			continue
 		}
 
-		msg := bot.FormatNotificationShort(feed.ID, feed.Name, item)
+		msg := bot.FormatNotificationShort(int(feed.Position), feed.Name, item)
 		if msg.Markup != nil {
 			s.sender.SendMessageWithKeyboard(feed.ChatID, msg.Text, msg.Markup)
 		} else {

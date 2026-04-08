@@ -48,13 +48,23 @@ func (s *SQLite) Close() error {
 	return s.db.Close()
 }
 
-// CreateFeed inserts a new feed and populates its ID and CreatedAt.
+// CreateFeed inserts a new feed and populates its ID, Position and CreatedAt.
 func (s *SQLite) CreateFeed(ctx context.Context, feed *model.Feed) error {
 	now := time.Now().UTC().Format(timeLayout)
+
+	var position int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COALESCE(MAX(position), 0) + 1 FROM feeds WHERE chat_id = ?`,
+		feed.ChatID,
+	).Scan(&position)
+	if err != nil {
+		return fmt.Errorf("get next position: %w", err)
+	}
+
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO feeds (chat_id, name, url, interval_minutes, is_active, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
-		feed.ChatID, feed.Name, feed.URL, feed.IntervalMinutes, boolToInt(feed.IsActive), now,
+		`INSERT INTO feeds (chat_id, position, name, url, interval_minutes, is_active, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		feed.ChatID, position, feed.Name, feed.URL, feed.IntervalMinutes, boolToInt(feed.IsActive), now,
 	)
 	if err != nil {
 		return fmt.Errorf("insert feed: %w", err)
@@ -64,6 +74,7 @@ func (s *SQLite) CreateFeed(ctx context.Context, feed *model.Feed) error {
 		return fmt.Errorf("last insert id: %w", err)
 	}
 	feed.ID = id
+	feed.Position = position
 	feed.CreatedAt, _ = time.Parse(timeLayout, now)
 	return nil
 }
@@ -71,8 +82,17 @@ func (s *SQLite) CreateFeed(ctx context.Context, feed *model.Feed) error {
 // GetFeed returns a single feed by its ID.
 func (s *SQLite) GetFeed(ctx context.Context, id int64) (*model.Feed, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, chat_id, name, url, interval_minutes, is_active, last_check_at, created_at
+		`SELECT id, chat_id, position, name, url, interval_minutes, is_active, last_check_at, created_at
 		 FROM feeds WHERE id = ?`, id,
+	)
+	return scanFeed(row)
+}
+
+// GetFeedByPosition returns a feed by its local position for a chat.
+func (s *SQLite) GetFeedByPosition(ctx context.Context, chatID int64, position int) (*model.Feed, error) {
+	row := s.db.QueryRowContext(ctx,
+		`SELECT id, chat_id, position, name, url, interval_minutes, is_active, last_check_at, created_at
+		 FROM feeds WHERE chat_id = ? AND position = ?`, chatID, position,
 	)
 	return scanFeed(row)
 }
@@ -80,8 +100,8 @@ func (s *SQLite) GetFeed(ctx context.Context, id int64) (*model.Feed, error) {
 // ListFeeds returns all feeds belonging to the given chat.
 func (s *SQLite) ListFeeds(ctx context.Context, chatID int64) ([]model.Feed, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, chat_id, name, url, interval_minutes, is_active, last_check_at, created_at
-		 FROM feeds WHERE chat_id = ? ORDER BY id`, chatID,
+		`SELECT id, chat_id, position, name, url, interval_minutes, is_active, last_check_at, created_at
+		 FROM feeds WHERE chat_id = ? ORDER BY position`, chatID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("query feeds: %w", err)
@@ -94,7 +114,7 @@ func (s *SQLite) ListFeeds(ctx context.Context, chatID int64) ([]model.Feed, err
 func (s *SQLite) ListDueFeeds(ctx context.Context) ([]model.Feed, error) {
 	now := time.Now().UTC().Format(timeLayout)
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, chat_id, name, url, interval_minutes, is_active, last_check_at, created_at
+		`SELECT id, chat_id, position, name, url, interval_minutes, is_active, last_check_at, created_at
 		 FROM feeds
 		 WHERE is_active = 1
 		   AND (last_check_at IS NULL
@@ -134,6 +154,12 @@ func (s *SQLite) DeleteFeed(ctx context.Context, id int64) error {
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	var chatID int64
+	var position int
+	if err := tx.QueryRowContext(ctx, `SELECT chat_id, position FROM feeds WHERE id = ?`, id).Scan(&chatID, &position); err != nil {
+		return fmt.Errorf("get feed before delete: %w", err)
+	}
+
 	if _, err := tx.ExecContext(ctx, `DELETE FROM seen_items WHERE feed_id = ?`, id); err != nil {
 		return fmt.Errorf("delete seen_items: %w", err)
 	}
@@ -143,15 +169,33 @@ func (s *SQLite) DeleteFeed(ctx context.Context, id int64) error {
 	if _, err := tx.ExecContext(ctx, `DELETE FROM feeds WHERE id = ?`, id); err != nil {
 		return fmt.Errorf("delete feed: %w", err)
 	}
+
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE feeds SET position = position - 1 WHERE chat_id = ? AND position > ?`,
+		chatID, position,
+	); err != nil {
+		return fmt.Errorf("update positions: %w", err)
+	}
+
 	return tx.Commit()
 }
 
-// CreateFilter inserts a new filter and populates its ID and CreatedAt.
+// CreateFilter inserts a new filter and populates its ID, Position and CreatedAt.
 func (s *SQLite) CreateFilter(ctx context.Context, f *model.Filter) error {
 	now := time.Now().UTC().Format(timeLayout)
+
+	var position int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COALESCE(MAX(position), 0) + 1 FROM filters WHERE feed_id = ?`,
+		f.FeedID,
+	).Scan(&position)
+	if err != nil {
+		return fmt.Errorf("get next position: %w", err)
+	}
+
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO filters (feed_id, kind, scope, value, created_at) VALUES (?, ?, ?, ?, ?)`,
-		f.FeedID, string(f.Kind), string(f.Scope), f.Value, now,
+		`INSERT INTO filters (feed_id, position, kind, scope, value, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+		f.FeedID, position, string(f.Kind), string(f.Scope), f.Value, now,
 	)
 	if err != nil {
 		return fmt.Errorf("insert filter: %w", err)
@@ -161,6 +205,7 @@ func (s *SQLite) CreateFilter(ctx context.Context, f *model.Filter) error {
 		return fmt.Errorf("last insert id: %w", err)
 	}
 	f.ID = id
+	f.Position = position
 	f.CreatedAt, _ = time.Parse(timeLayout, now)
 	return nil
 }
@@ -168,7 +213,7 @@ func (s *SQLite) CreateFilter(ctx context.Context, f *model.Filter) error {
 // ListFilters returns all filters for the given feed.
 func (s *SQLite) ListFilters(ctx context.Context, feedID int64) ([]model.Filter, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, feed_id, kind, scope, value, created_at FROM filters WHERE feed_id = ? ORDER BY id`, feedID,
+		`SELECT id, feed_id, position, kind, scope, value, created_at FROM filters WHERE feed_id = ? ORDER BY position`, feedID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("query filters: %w", err)
@@ -189,27 +234,53 @@ func (s *SQLite) ListFilters(ctx context.Context, feedID int64) ([]model.Filter,
 // GetFilter returns a single filter by its ID.
 func (s *SQLite) GetFilter(ctx context.Context, id int64) (*model.Filter, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, feed_id, kind, scope, value, created_at FROM filters WHERE id = ?`, id,
+		`SELECT id, feed_id, position, kind, scope, value, created_at FROM filters WHERE id = ?`, id,
 	)
-	var f model.Filter
-	var kindStr, scopeStr, createdStr string
-	err := row.Scan(&f.ID, &f.FeedID, &kindStr, &scopeStr, &f.Value, &createdStr)
+	f, err := scanFilter(row)
 	if err != nil {
-		return nil, fmt.Errorf("scan filter: %w", err)
+		return nil, err
 	}
-	f.Kind = model.FilterKind(kindStr)
-	f.Scope = model.FilterScope(scopeStr)
-	f.CreatedAt, _ = time.Parse(timeLayout, createdStr)
+	return &f, nil
+}
+
+// GetFilterByPosition returns a filter by its local position for a feed.
+func (s *SQLite) GetFilterByPosition(ctx context.Context, feedID int64, position int) (*model.Filter, error) {
+	row := s.db.QueryRowContext(ctx,
+		`SELECT id, feed_id, position, kind, scope, value, created_at FROM filters WHERE feed_id = ? AND position = ?`, feedID, position,
+	)
+	f, err := scanFilter(row)
+	if err != nil {
+		return nil, err
+	}
 	return &f, nil
 }
 
 // DeleteFilter removes a filter by its ID.
 func (s *SQLite) DeleteFilter(ctx context.Context, id int64) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM filters WHERE id = ?`, id)
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var feedID int64
+	var position int
+	if err := tx.QueryRowContext(ctx, `SELECT feed_id, position FROM filters WHERE id = ?`, id).Scan(&feedID, &position); err != nil {
+		return fmt.Errorf("get filter before delete: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx, `DELETE FROM filters WHERE id = ?`, id); err != nil {
 		return fmt.Errorf("delete filter: %w", err)
 	}
-	return nil
+
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE filters SET position = position - 1 WHERE feed_id = ? AND position > ?`,
+		feedID, position,
+	); err != nil {
+		return fmt.Errorf("update positions: %w", err)
+	}
+
+	return tx.Commit()
 }
 
 // MarkSeen records that an RSS item has been processed.
@@ -268,7 +339,7 @@ func scanFeed(row scannable) (*model.Feed, error) {
 	var f model.Feed
 	var isActive int
 	var lastCheck, created sql.NullString
-	err := row.Scan(&f.ID, &f.ChatID, &f.Name, &f.URL, &f.IntervalMinutes, &isActive, &lastCheck, &created)
+	err := row.Scan(&f.ID, &f.ChatID, &f.Position, &f.Name, &f.URL, &f.IntervalMinutes, &isActive, &lastCheck, &created)
 	if err != nil {
 		return nil, fmt.Errorf("scan feed: %w", err)
 	}
@@ -298,7 +369,7 @@ func scanFeeds(rows *sql.Rows) ([]model.Feed, error) {
 func scanFilter(row scannable) (model.Filter, error) {
 	var f model.Filter
 	var kindStr, scopeStr, createdStr string
-	err := row.Scan(&f.ID, &f.FeedID, &kindStr, &scopeStr, &f.Value, &createdStr)
+	err := row.Scan(&f.ID, &f.FeedID, &f.Position, &kindStr, &scopeStr, &f.Value, &createdStr)
 	if err != nil {
 		return f, fmt.Errorf("scan filter: %w", err)
 	}

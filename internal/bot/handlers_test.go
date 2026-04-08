@@ -21,27 +21,27 @@ func TestParseFilterCommand(t *testing.T) {
 		{
 			name: "simple word",
 			args: "1 kubernetes",
-			want: FilterArgs{FeedID: 1, Scope: model.ScopeAll, Value: "kubernetes"},
+			want: FilterArgs{FeedPosition: 1, Scope: model.ScopeAll, Value: "kubernetes"},
 		},
 		{
 			name: "multi-word value",
 			args: "3 helm chart deployment",
-			want: FilterArgs{FeedID: 3, Scope: model.ScopeAll, Value: "helm chart deployment"},
+			want: FilterArgs{FeedPosition: 3, Scope: model.ScopeAll, Value: "helm chart deployment"},
 		},
 		{
 			name: "with scope title",
 			args: "1 -s title deploy",
-			want: FilterArgs{FeedID: 1, Scope: model.ScopeTitle, Value: "deploy"},
+			want: FilterArgs{FeedPosition: 1, Scope: model.ScopeTitle, Value: "deploy"},
 		},
 		{
 			name: "with scope content",
 			args: "2 -s content promo material",
-			want: FilterArgs{FeedID: 2, Scope: model.ScopeContent, Value: "promo material"},
+			want: FilterArgs{FeedPosition: 2, Scope: model.ScopeContent, Value: "promo material"},
 		},
 		{
 			name: "with scope all",
 			args: "1 -s all kubernetes",
-			want: FilterArgs{FeedID: 1, Scope: model.ScopeAll, Value: "kubernetes"},
+			want: FilterArgs{FeedPosition: 1, Scope: model.ScopeAll, Value: "kubernetes"},
 		},
 		{
 			name:    "missing value",
@@ -89,11 +89,11 @@ func TestParseFilterCommand(t *testing.T) {
 	}
 }
 
-func TestParseIDArg(t *testing.T) {
+func TestParseFeedArg(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    string
-		want    int64
+		want    int
 		wantErr bool
 	}{
 		{name: "valid", args: "42", want: 42},
@@ -104,7 +104,7 @@ func TestParseIDArg(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ParseIDArg(tt.args)
+			got, err := ParseFeedArg(tt.args)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("expected error")
@@ -125,18 +125,18 @@ func TestParseRenameArgs(t *testing.T) {
 	tests := []struct {
 		name     string
 		args     string
-		wantID   int64
+		wantNum  int
 		wantName string
 		wantErr  bool
 	}{
-		{name: "valid", args: "1 New Name", wantID: 1, wantName: "New Name"},
+		{name: "valid", args: "1 New Name", wantNum: 1, wantName: "New Name"},
 		{name: "missing name", args: "1", wantErr: true},
 		{name: "invalid id", args: "abc name", wantErr: true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			id, name, err := ParseRenameArgs(tt.args)
+			num, name, err := ParseRenameArgs(tt.args)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("expected error")
@@ -146,8 +146,8 @@ func TestParseRenameArgs(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if diff := cmp.Diff(tt.wantID, id); diff != "" {
-				t.Errorf("id mismatch (-want +got):\n%s", diff)
+			if diff := cmp.Diff(tt.wantNum, num); diff != "" {
+				t.Errorf("num mismatch (-want +got):\n%s", diff)
 			}
 			if diff := cmp.Diff(tt.wantName, name); diff != "" {
 				t.Errorf("name mismatch (-want +got):\n%s", diff)
@@ -160,13 +160,13 @@ func TestParseIntervalArgs(t *testing.T) {
 	tests := []struct {
 		name     string
 		args     string
-		wantID   int64
+		wantNum  int
 		wantMins int
 		wantErr  bool
 	}{
-		{name: "valid", args: "1 30", wantID: 1, wantMins: 30},
-		{name: "min boundary", args: "2 1", wantID: 2, wantMins: 1},
-		{name: "max boundary", args: "3 1440", wantID: 3, wantMins: 1440},
+		{name: "valid", args: "1 30", wantNum: 1, wantMins: 30},
+		{name: "min boundary", args: "2 1", wantNum: 2, wantMins: 1},
+		{name: "max boundary", args: "3 1440", wantNum: 3, wantMins: 1440},
 		{name: "too low", args: "1 0", wantErr: true},
 		{name: "too high", args: "1 1441", wantErr: true},
 		{name: "missing minutes", args: "1", wantErr: true},
@@ -175,7 +175,7 @@ func TestParseIntervalArgs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			id, mins, err := ParseIntervalArgs(tt.args)
+			num, mins, err := ParseIntervalArgs(tt.args)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("expected error")
@@ -185,8 +185,8 @@ func TestParseIntervalArgs(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if diff := cmp.Diff(tt.wantID, id); diff != "" {
-				t.Errorf("id mismatch (-want +got):\n%s", diff)
+			if diff := cmp.Diff(tt.wantNum, num); diff != "" {
+				t.Errorf("num mismatch (-want +got):\n%s", diff)
 			}
 			if diff := cmp.Diff(tt.wantMins, mins); diff != "" {
 				t.Errorf("minutes mismatch (-want +got):\n%s", diff)
@@ -249,8 +249,8 @@ func TestFormatFeedList(t *testing.T) {
 		{
 			name: "with feeds",
 			feeds: []model.Feed{
-				{ID: 1, Name: "Feed A", IntervalMinutes: 15, IsActive: true},
-				{ID: 2, Name: "Feed B", IntervalMinutes: 60, IsActive: false},
+				{ID: 1, Position: 1, Name: "Feed A", IntervalMinutes: 15, IsActive: true},
+				{ID: 2, Position: 2, Name: "Feed B", IntervalMinutes: 60, IsActive: false},
 			},
 			filterCounts: map[int64][2]int{
 				1: {2, 1},
@@ -290,26 +290,26 @@ func TestFormatFeedInfo(t *testing.T) {
 		{
 			name: "active feed with filters",
 			feed: &model.Feed{
-				ID: 1, Name: "DevOps Feed", URL: "https://example.com/rss",
+				ID: 1, Position: 1, Name: "DevOps Feed", URL: "https://example.com/rss",
 				IntervalMinutes: 30, IsActive: true, LastCheckAt: &lastCheck,
 			},
 			filters: []model.Filter{
-				{ID: 10, FeedID: 1, Kind: model.FilterInclude, Scope: model.ScopeAll, Value: "k8s"},
-				{ID: 11, FeedID: 1, Kind: model.FilterExclude, Scope: model.ScopeTitle, Value: "ad"},
+				{ID: 1, FeedID: 1, Position: 1, Kind: model.FilterInclude, Scope: model.ScopeAll, Value: "k8s"},
+				{ID: 2, FeedID: 1, Position: 2, Kind: model.FilterExclude, Scope: model.ScopeTitle, Value: "ad"},
 			},
 			wantContains: []string{
 				"#1 DevOps Feed [active]",
 				"https://example.com/rss",
 				"every 30 min",
 				"2025-06-15 10:30 UTC",
-				"F10: k8s (title+content)",
-				"F11: ad (title only)",
+				"F1: k8s (title+content)",
+				"F2: ad (title only)",
 			},
 		},
 		{
 			name: "paused feed no filters",
 			feed: &model.Feed{
-				ID: 5, Name: "Paused", URL: "https://p.com", IntervalMinutes: 60, IsActive: false,
+				ID: 5, Position: 5, Name: "Paused", URL: "https://p.com", IntervalMinutes: 60, IsActive: false,
 			},
 			filters: nil,
 			wantContains: []string{
@@ -332,7 +332,7 @@ func TestFormatFeedInfo(t *testing.T) {
 }
 
 func TestFormatFilterList(t *testing.T) {
-	feed := &model.Feed{ID: 1, Name: "Test Feed"}
+	feed := &model.Feed{ID: 1, Position: 1, Name: "Test Feed"}
 
 	tests := []struct {
 		name         string
@@ -350,10 +350,10 @@ func TestFormatFilterList(t *testing.T) {
 		{
 			name: "all filter kinds",
 			filters: []model.Filter{
-				{ID: 1, Kind: model.FilterInclude, Scope: model.ScopeAll, Value: "go"},
-				{ID: 2, Kind: model.FilterIncludeRe, Scope: model.ScopeTitle, Value: "(?i)release"},
-				{ID: 3, Kind: model.FilterExclude, Scope: model.ScopeContent, Value: "spam"},
-				{ID: 4, Kind: model.FilterExcludeRe, Scope: model.ScopeAll, Value: "(?i)ads"},
+				{ID: 1, Position: 1, Kind: model.FilterInclude, Scope: model.ScopeAll, Value: "go"},
+				{ID: 2, Position: 2, Kind: model.FilterIncludeRe, Scope: model.ScopeTitle, Value: "(?i)release"},
+				{ID: 3, Position: 3, Kind: model.FilterExclude, Scope: model.ScopeContent, Value: "spam"},
+				{ID: 4, Position: 4, Kind: model.FilterExcludeRe, Scope: model.ScopeAll, Value: "(?i)ads"},
 			},
 			wantContains: []string{
 				"Include (word):",

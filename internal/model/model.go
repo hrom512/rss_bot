@@ -7,6 +7,7 @@ import "time"
 type Feed struct {
 	ID              int64
 	ChatID          int64
+	Position        int
 	Name            string
 	URL             string
 	IntervalMinutes int
@@ -40,6 +41,7 @@ const (
 type Filter struct {
 	ID        int64
 	FeedID    int64
+	Position  int
 	Kind      FilterKind
 	Scope     FilterScope
 	Value     string

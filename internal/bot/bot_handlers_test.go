@@ -533,7 +533,7 @@ func TestHandleAddFilter(t *testing.T) {
 		seedFeed(t, store, 100, "Feed", "https://x.com")
 		b.handleAddFilter(ctx, 100, "1 kubernetes", "include")
 		requireContains(t, api.lastText(), "Filter F1 added")
-		requireContains(t, api.lastText(), "include kubernetes")
+		requireContains(t, api.lastText(), "F1:")
 
 		filters, _ := store.ListFilters(ctx, 1)
 		if diff := cmp.Diff(1, len(filters)); diff != "" {

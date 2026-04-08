@@ -59,7 +59,7 @@ func TestFormatNotification_PlainText(t *testing.T) {
 
 func TestFormatNotificationShort_WithImage(t *testing.T) {
 	feedName := testFeedName
-	feedID := int64(1)
+	feedPosition := 1
 	item := fetcher.MatchedItem{
 		Title:       "Title with Image",
 		Description: "<p>Description with image: <img src=\"https://example.com/photo.jpg\"/></p>",
@@ -68,7 +68,7 @@ func TestFormatNotificationShort_WithImage(t *testing.T) {
 		GUID:        "item-123",
 	}
 
-	result := FormatNotificationShort(feedID, feedName, item)
+	result := FormatNotificationShort(feedPosition, feedName, item)
 
 	if result.ImageURL == "" {
 		t.Error("should have ImageURL")

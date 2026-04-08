@@ -11,8 +11,8 @@ import (
 	"rss_bot/internal/model"
 )
 
-var ignoreTimestamps = cmpopts.IgnoreFields(model.Feed{}, "CreatedAt", "LastCheckAt")
-var ignoreFilterTS = cmpopts.IgnoreFields(model.Filter{}, "CreatedAt")
+var ignoreTimestamps = cmpopts.IgnoreFields(model.Feed{}, "CreatedAt", "LastCheckAt", "Position")
+var ignoreFilterTS = cmpopts.IgnoreFields(model.Filter{}, "CreatedAt", "Position")
 
 func newTestDB(t *testing.T) *SQLite {
 	t.Helper()
